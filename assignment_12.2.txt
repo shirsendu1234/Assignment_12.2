@@ -1,0 +1,35 @@
+#Model Deployment
+library(pmml)
+library(rpart)
+dtree <- rpart(Species~., data=iris)
+dtree
+pmml(dtree)
+#To store the PMML model in xml form, from R studio, the following script can be used.
+saveXML(pmml(dtree),file="dtree_in_pmml.xml")
+
+#Spark-R Integration
+library(sparklyr)
+sc <- spark_connect(master = "local")
+library(dplyr)
+iris_tbl <- copy_to(sc, iris)
+iris_tbl
+
+ # Machine Learning using Apache Spark
+ # copy mtcars into spark
+mtcars_tbl <- copy_to(sc, mtcars)
+mtcars_tbl
+ 
+# transform our data set, and then partition into 'training', 'test'
+ partitions <- mtcars_tbl %>%
+   filter(hp >= 100) %>%
+   mutate(cyl8 = cyl == 8) %>%
+   sdf_partition(training = 0.5, test = 0.5, seed = 1099)
+partitions
+  
+# fit a linear model to the training dataset
+  fit <- partitions$training %>%
+    ml_linear_regression(response = "mpg", features = c("wt", "cyl"))
+  summary(fit)
+  
+   
+  
